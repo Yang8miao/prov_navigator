@@ -1064,7 +1064,6 @@ func main() {
 	dotPath, subDotPath := GetPath()
 
 	maliciousNodes := GetMaliciousNodes()
-	groundTruths := GetGroundTruths()
 
 	var maliciousLabels []string
 
@@ -1077,8 +1076,6 @@ func main() {
 	}
 
 	GetDEnodes(graph)
-	GetEntitySituation(graph, groundTruths[HHPG.Dataset])
-	GetRelationSituation(graph, groundTruths[HHPG.Dataset])
 
 	var withSpps = [1]bool{true}
 
@@ -1087,9 +1084,6 @@ func main() {
 		startTime := time.Now().Unix()
 
 		GraphSearch(dotPath, subDotPath, maliciousLabels, withSpp)
-
-		GetPrecision(subDotPath, groundTruths[HHPG.Dataset])
-		GetRecall(subDotPath, groundTruths[HHPG.Dataset])
 
 		endTime := time.Now().Unix()
 
