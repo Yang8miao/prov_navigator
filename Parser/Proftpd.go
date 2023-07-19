@@ -169,8 +169,8 @@ func (p ProftpdParser) ParseLine(rawLine string) (CLF.ParsedLog, bool, error) {
 	}
 
 	for tag := range UnwrapObject(parsedLog, "clf") {
-		if tag.k == "filename" && tag.v == "/var/ftp/evil.txt" {
-			tag.v = "/evil.txt"
+		if tag.k == "filename" {
+			tags = append(tags, CLF.Tag{ID: -1, Key: tag.k, Value: GetFileName(tag.v), Type: CLF.Normal})
 		}
 		tags = append(tags, CLF.Tag{ID: -1, Key: tag.k, Value: tag.v, Type: CLF.Normal})
 	}

@@ -92,6 +92,9 @@ func (p *ImageMagickParser) ParseLine(rawLine string) (CLF.ParsedLog, bool, erro
 
 	for tag := range UnwrapObject(parsedLine, "clf") {
 		tags = append(tags, CLF.Tag{ID: -1, Key: tag.k, Value: tag.v, Type: CLF.Normal})
+		if tag.k == "filename" {
+			tags = append(tags, CLF.Tag{ID: -1, Key: tag.k, Value: GetFileName(tag.v), Type: CLF.Normal})
+		}
 	}
 
 	if parsedLine.Rights == "Write" {

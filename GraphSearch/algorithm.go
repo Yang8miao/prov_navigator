@@ -434,50 +434,10 @@ func SearchForSpp(edge *gographviz.Edge, originEdge *gographviz.Edge, graph *gog
 					var spp = []*gographviz.Edge{appStartEdge, appEndEdge, edge, auditEndEdge}
 					sppsList = append(sppsList, spp)
 
-					MaxSppNum := 100
-
-					if HHPG.Dataset == "Apache" {
-						MaxSppNum = 250
-					}
-
-					if HHPG.Dataset == "Proftpd" {
-						MaxSppNum = 4000
-					}
-
-					if HHPG.Dataset == "Vim" {
-						MaxSppNum = 150000
-					}
-
-					if HHPG.Dataset == "APT/S2" {
-						MaxSppNum = 100000
-					}
-
-					if HHPG.Dataset == "ImageMagick" {
-						MaxSppNum = 2000
-					}
+					MaxSppNum := 150000
 
 					if len(sppsList) > MaxSppNum {
 						return sppsList
-					}
-				}
-			}
-
-			if HHPG.Dataset == "APT/S2" {
-				if appStartEdge != appEndEdge && appStartEdge.Src == appEndEdge.Src && appStartEdge.Dst == appEndEdge.Dst {
-					continue
-				}
-				if appStartEdge == appEndEdge && strings.Contains(appStartEdge.Attrs["label"], "/etc/crontab") {
-					for _, appEndEdges := range graph.Edges.SrcToDsts[appStartEdge.Src] {
-						for _, newAppEndEdge := range appEndEdges {
-							if GetDataSource(newAppEndEdge) == App[HHPG.Dataset] {
-								if newAppEndEdge != appStartEdge && newAppEndEdge.Src == appStartEdge.Src &&
-									newAppEndEdge.Dst == appStartEdge.Dst {
-									if strings.Contains(newAppEndEdge.Attrs["label"], "app.py") {
-										edgeQueue.Add(newAppEndEdge)
-									}
-								}
-							}
-						}
 					}
 				}
 			}
@@ -505,33 +465,22 @@ func ProcessDependencyExplosion(originEdge *gographviz.Edge, graph *gographviz.G
 	var sppsList [][]*gographviz.Edge
 
 	var nodeNum int = 0
+	nodeNumMax := 10
 	for {
 		nodeNum++
 
-		nodeNumMax := 10
-		if HHPG.Dataset == "APT/S1" {
-			nodeNumMax = 500
-		}
-		if HHPG.Dataset == "APT/S1-1" {
-			nodeNumMax = 200
-		}
-		if HHPG.Dataset == "ATLAS/S2" {
-			nodeNumMax = 5000
-		}
 		if edgeQueue.Length() == 0 || nodeNum > nodeNumMax {
-			break
+			if nodeNum > nodeNumMax && len(sppsList) == 0 {
+				nodeNumMax *= 2
+			} else {
+				break
+			}
 		}
 		edge := edgeQueue.Remove().(*gographviz.Edge)
 
 		var curSppsList [][]*gographviz.Edge
 
-		if HHPG.Dataset == "ATLAS/S2" {
-			if strings.Contains(edge.Dst, "socket_src#192.168.223.128:65414") {
-				curSppsList = SearchForSpp(edge, originEdge, graph, edgesMap)
-			}
-		} else {
-			curSppsList = SearchForSpp(edge, originEdge, graph, edgesMap)
-		}
+		curSppsList = SearchForSpp(edge, originEdge, graph, edgesMap)
 
 		if len(curSppsList) > 0 {
 			for _, spp := range curSppsList {

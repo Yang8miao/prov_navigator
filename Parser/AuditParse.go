@@ -251,12 +251,18 @@ func (s *ChanStream) pushOne(event *aucoalesce.Event, rawString string) {
 			}
 			for tag := range UnwrapObject(eventEdge.SrcNode, "clf1") {
 				tags = append(tags, CLF.Tag{ID: -1, Key: tag.k, Value: tag.v, Type: CLF.Normal})
+				if tag.k == "filename" {
+					tags = append(tags, CLF.Tag{ID: -1, Key: tag.k, Value: GetFileName(tag.v), Type: CLF.Normal})
+				}
 			}
 			for tag := range UnwrapObject(eventEdge.DstNode, "clf") {
 				tags = append(tags, CLF.Tag{ID: -1, Key: "dst_" + tag.k, Value: tag.v, Type: CLF.Normal})
 			}
 			for tag := range UnwrapObject(eventEdge.DstNode, "clf1") {
 				tags = append(tags, CLF.Tag{ID: -1, Key: tag.k, Value: tag.v, Type: CLF.Normal})
+				if tag.k == "filename" {
+					tags = append(tags, CLF.Tag{ID: -1, Key: tag.k, Value: GetFileName(tag.v), Type: CLF.Normal})
+				}
 			}
 
 			tags = append(tags, CLF.Tag{ID: -1, Key: "action", Value: syscall, Type: CLF.Normal})

@@ -99,6 +99,7 @@ func (f *FirefoxParser) ParseLine(rawLine string) (CLF.ParsedLog, bool, error) {
 	allMatch := filenameRe.FindAllStringSubmatch(httpEntry.Query, -1)
 	if len(allMatch) > 0 && len(allMatch[0]) > 1 {
 		tags = append(tags, CLF.Tag{ID: -1, Key: "filename", Value: ellipsis(allMatch[0][1], MAX_TAG_VAL_BYTES), Type: CLF.Normal})
+		tags = append(tags, CLF.Tag{ID: -1, Key: "filename", Value: ellipsis(GetFileName(allMatch[0][1]), MAX_TAG_VAL_BYTES), Type: CLF.Normal})
 	}
 
 	pl.Tags = tags

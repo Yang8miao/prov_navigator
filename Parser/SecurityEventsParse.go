@@ -148,12 +148,14 @@ func (s *SecurityEventsParser) RefineEntry(se SecurityEvent) CLF.ParsedLog {
 		valueList := strings.Split(startValue, "\\")
 		value := valueList[len(valueList)-1]
 		tags = append(tags, CLF.Tag{ID: -1, Key: "filename", Value: value, Type: CLF.Normal})
+		tags = append(tags, CLF.Tag{ID: -1, Key: "filename", Value: GetFileName(value), Type: CLF.Normal})
 	}
 
 	if strings.HasPrefix(endValue, "file#") {
 		valueList := strings.Split(endValue, "\\")
 		value := valueList[len(valueList)-1]
 		tags = append(tags, CLF.Tag{ID: -1, Key: "filename", Value: value, Type: CLF.Normal})
+		tags = append(tags, CLF.Tag{ID: -1, Key: "filename", Value: GetFileName(value), Type: CLF.Normal})
 	}
 
 	const layout = "1/2/2006 3:04:05 PM"

@@ -99,8 +99,8 @@ func (p VimParser) ParseLine(rawLine string) (CLF.ParsedLog, bool, error) {
 	parsedLine := parseVimLine(rawLine)
 
 	for tag := range UnwrapObject(parsedLine, "clf") {
-		if strings.Contains(tag.v, "poc.txt") {
-			tag.v = "poc.txt"
+		if tag.k == "filename" {
+			tags = append(tags, CLF.Tag{ID: -1, Key: tag.k, Value: GetFileName(tag.v), Type: CLF.Normal})
 		}
 		tags = append(tags, CLF.Tag{ID: -1, Key: tag.k, Value: tag.v, Type: CLF.Normal})
 	}

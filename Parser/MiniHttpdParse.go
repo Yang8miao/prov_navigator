@@ -72,6 +72,9 @@ func (p *MiniHttpdParser) ParseLine(rawLine string) (CLF.ParsedLog, bool, error)
 				Value: m[n],
 				Type:  CLF.Normal,
 			})
+			if n == "filename" {
+				tags = append(tags, CLF.Tag{ID: -1, Key: n, Value: GetFileName(m[n]), Type: CLF.Normal})
+			}
 			if n == "remote_ip" {
 				start = m[n]
 				tags = append(tags, CLF.Tag{ID: -1, Key: "ip", Value: start, Type: CLF.Normal})

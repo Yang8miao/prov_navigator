@@ -1,7 +1,6 @@
 package main
 
 import (
-	"HHPG"
 	"HHPG/CLF"
 	"errors"
 	"regexp"
@@ -136,35 +135,23 @@ func (p NetworkParser) ParseLine(rawLine string) (CLF.ParsedLog, bool, error) {
 			}
 
 			if n == "text" {
-				if strings.Contains(m[n], "/opt/ftp/attackk.sh") && strings.Contains(HHPG.Dataset, "APT/S1") {
-					tags = append(tags, CLF.Tag{ID: -1, Key: "filename", Value: "/opt/ftp/attackk.sh", Type: CLF.Normal})
-				}
 				textSplit := strings.Split(m[n], " ")
 				for _, candidateFilename := range textSplit {
 					if strings.Contains(candidateFilename, "txt") {
-						if HHPG.Dataset == "Proftpd" {
-							candidateFilename = "/" + candidateFilename
-							tags = append(tags, CLF.Tag{ID: -1, Key: "filename", Value: candidateFilename, Type: CLF.Normal})
-						}
+						tags = append(tags, CLF.Tag{ID: -1, Key: "filename", Value: GetFileName(candidateFilename), Type: CLF.Normal})
 					}
 				}
 			}
 
-			if n == "filename" && HHPG.Dataset == "Apache" && strings.Contains(m[n], "/etc/passwd") {
-				tags = append(tags, CLF.Tag{ID: -1, Key: "filename", Value: "/etc/passwd", Type: CLF.Normal})
-			}
-
-			if n == "filename" && HHPG.Dataset == "APT/S2" && strings.Contains(m[n], "/etc/crontab") {
-				tags = append(tags, CLF.Tag{ID: -1, Key: "filename", Value: "/etc/crontab", Type: CLF.Normal})
-			}
-
-			if n == "filename" && HHPG.Dataset == "APT/S2" && strings.Contains(m[n], "app.py") {
-				tags = append(tags, CLF.Tag{ID: -1, Key: "filename", Value: "/tmp/file/../../home/ubuntu/app/src/app.py", Type: CLF.Normal})
-			}
-
-			if n == "filename" && (strings.Contains(HHPG.Dataset, "APT/S1") || strings.Contains(HHPG.Dataset, "php")) &&
-				strings.Contains(m[n], "/opt/ftp/attackk.sh") {
-				tags = append(tags, CLF.Tag{ID: -1, Key: "filename", Value: "/opt/ftp/attackk.sh", Type: CLF.Normal})
+			if n == "filename" {
+				tags = append(tags, CLF.Tag{ID: -1, Key: n, Value: GetFileName(m[n]), Type: CLF.Normal})
+				if strings.Contains(m[n], "system") {
+					textSplit := strings.Split(m[n], "'")
+					if len(textSplit) == 3 {
+						path := textSplit[1]
+						tags = append(tags, CLF.Tag{ID: -1, Key: "filename", Value: GetFileName(path), Type: CLF.Normal})
+					}
+				}
 			}
 
 		}
