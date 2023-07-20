@@ -2,24 +2,28 @@ package main
 
 import (
 	"HHPG/CLF"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
 
 type RedisLog struct {
-	Timestamp float64
-	Ip        string `clf:"ip"`
-	Port      string `clf:"port"`
-	Command   string `clf:"cmd"`
-	Content   string `clf:"content"`
+	Timestamp   float64
+	Ip          string `clf:"ip"`
+	Port        string `clf:"port"`
+	Command     string `clf:"cmd"`
+	Content     string `clf:"content"`
+	LibPath     string `clf:"libpath"`
+	Function    string `clf:"function"`
+	CommandMode string `clf:"commandmode"`
+	FileMode    string `clf:"filemode"`
 }
 
 func parseRedisLine(line string) RedisLog {
 	var s = strings.Split(line, " ")
 	timestamp, err := strconv.ParseFloat(s[0], 64)
 	if err != nil {
-
 		return RedisLog{}
 	}
 	ipPort := strings.Split(strings.Trim(s[2], "]"), ":")
@@ -35,8 +39,28 @@ func parseRedisLine(line string) RedisLog {
 		Content:   content,
 	}
 	if parsedLine.Command == "SCRIPT" {
-		parsedLine.Command = "stat"
-		parsedLine.Content = "/etc/passwd"
+		s = strings.Split(line, ";")
+		for j := 0; j < len(s); j++ {
+			reg := regexp.MustCompile("loadlib\\((.*),(.*)\\)")
+			match := reg.FindStringSubmatch(s[j])
+			if len(match) > 0 {
+				parsedLine.LibPath = strings.Trim(match[1], "\\\" ")
+				parsedLine.Function = strings.Trim(match[2], "\\\" ")
+			}
+			reg = regexp.MustCompile("io\\.popen\\((.*),(.*)\\)")
+			match = reg.FindStringSubmatch(s[j])
+			if len(match) > 0 {
+				res := strings.Split(match[1], " ")
+				parsedLine.Command = strings.Trim(res[0], "\\\" ")
+				parsedLine.Content = strings.Trim(res[1], "\\\" ")
+				parsedLine.CommandMode = strings.Trim(match[2], "\\\" ")
+			}
+			reg = regexp.MustCompile("read\\((.*?)\\)")
+			match = reg.FindStringSubmatch(s[j])
+			if len(match) > 0 {
+				parsedLine.FileMode = strings.Trim(match[1], "\\\" ")
+			}
+		}
 	}
 	return parsedLine
 }
