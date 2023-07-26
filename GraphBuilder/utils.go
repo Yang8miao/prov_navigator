@@ -18,7 +18,7 @@ var LogtypePrefixMap = map[string]string{
 	"Network":        "network",
 	"SecurityEvents": "securityEvents",
 	"Firefox":        "firefox",
-	"PostgreSQL":     "psql",
+	"PostgreSql":     "psql",
 	"Proftpd":        "proftpd",
 	"Nginx":          "nginx",
 	"Apache":         "apache",
@@ -61,7 +61,7 @@ func getShape(str string, log_type string, nodeLoc string) string {
 			return "ellipse"
 		}
 	}
-	if log_type == "PostgreSQL" {
+	if log_type == "PostgreSql" {
 		if strings.Contains(str, "PostgreSQL.exe") {
 			return "box"
 		} else {
@@ -73,37 +73,27 @@ func getShape(str string, log_type string, nodeLoc string) string {
 
 func UpdateNetwork() {
 
-	db, err := sql.Open("mysql", CLF.MYSQL_CRED)
+	db, err := sql.Open("sqlite3", CLF.SQLITE_FILE)
 	defer db.Close()
 	if err != nil {
 		panic(err)
 	}
-	s := "SELECT `_id` FROM `log` WHERE log_type=?;"
-	r, err := db.Query(s, "Network")
-	defer r.Close()
-	if err != nil {
-		fmt.Printf("err: %v\n", err)
-	} else {
-		for r.Next() {
-			var id int
-			r.Scan(&id)
-			sel := "update `log` set log_type=? where _id=?;"
-			db.Exec(sel, HHPG.Dataset, id)
-		}
-	}
+	sel := "update `log` set log_type=? where log_type=?;"
+	db.Exec(sel, HHPG.Dataset, "Network")
+
 }
 
 func FindNeighbors(id int) [][]string {
 
 	var neighborLns [][]string
 
-	db, err := sql.Open("mysql", CLF.MYSQL_CRED)
+	db, err := sql.Open("sqlite3", CLF.SQLITE_FILE)
 	defer db.Close()
 	if err != nil {
 		panic(err)
 	}
 
-	sel := "select `_time`, `_key`, `_value` from `log`,`r_log_tag`,`tag` where `log`._id=`r_log_tag`.log_id and `tag`._id=`r_log_tag`.tag_id and `log`._id=?;"
+	sel := "select `_time`, `_key`, `_value` from `log`,`r_log_tag`,`tag` where `log`.rowid=`r_log_tag`.log_id and `tag`.rowid=`r_log_tag`.tag_id and `log`.rowid=?;"
 	row, err := db.Query(sel, id)
 	if err != nil {
 		fmt.Printf("err: %v\n", err)
@@ -173,14 +163,14 @@ func ConstructHHPG(dotName string) error {
 	graph := gographviz.NewGraph()
 	gographviz.Analyse(graphAst, graph)
 
-	db, err := sql.Open("mysql", CLF.MYSQL_CRED)
+	db, err := sql.Open("sqlite3", CLF.SQLITE_FILE)
 	defer db.Close()
 	if err != nil {
 		panic(err)
 	}
 
 	for log_type, key_prefix := range LogtypePrefixMap {
-		s := "SELECT `_id` FROM `log` WHERE log_type=?;"
+		s := "SELECT `rowid` FROM `log` WHERE log_type=?;"
 		r, err := db.Query(s, log_type)
 		defer r.Close()
 		if err != nil {
@@ -233,13 +223,13 @@ func ConstructCLG(dotName string) error {
 	graph := gographviz.NewGraph()
 	gographviz.Analyse(graphAst, graph)
 
-	db, err := sql.Open("mysql", CLF.MYSQL_CRED)
+	db, err := sql.Open("sqlite3", CLF.SQLITE_FILE)
 	defer db.Close()
 	if err != nil {
 		panic(err)
 	}
 
-	s := "select `log_id`, `log_raw`, `log_type`, `_key`, `_value` from `log`,`r_log_tag`,`tag` where `log`._id=`r_log_tag`.log_id and `tag`._id=`r_log_tag`.tag_id;"
+	s := "select `log_id`, `log_raw`, `log_type`, `_key`, `_value` from `log`,`r_log_tag`,`tag` where `log`.rowid=`r_log_tag`.log_id and `tag`.rowid=`r_log_tag`.tag_id;"
 	r, err := db.Query(s)
 	defer r.Close()
 	if err != nil {

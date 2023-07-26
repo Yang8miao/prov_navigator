@@ -29,7 +29,7 @@ func StartDNSLogParse() {
 	pChanDNS := make(chan CLF.ParsedLog, 50)
 	dnsInserter := CLF.DNSInserter{ParsedLogCh: &pChanDNS}
 
-	for idx := 0; idx < 10; idx++ {
+	for idx := 0; idx < 1; idx++ {
 
 		wgInserter.Add(1)
 		idx := idx
@@ -51,7 +51,7 @@ func StartLogParse() {
 	pChan := make(chan CLF.ParsedLog, 100)
 	inserter := CLF.Inserter{ParsedLogCh: &pChan}
 
-	for idx := 0; idx < 100; idx++ {
+	for idx := 0; idx < 1; idx++ {
 
 		wgInserter.Add(1)
 		idx := idx
@@ -132,6 +132,7 @@ func StartLogParse() {
 }
 
 func main() {
+	CLF.DBPrepare()
 	if strings.Contains(HHPG.Dataset, "ATLAS") {
 		StartDNSLogParse()
 	}

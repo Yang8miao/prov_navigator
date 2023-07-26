@@ -12,7 +12,7 @@ const (
 	Group  TagType = 1
 )
 
-const MYSQL_CRED = "root:root_clf#2023@tcp(localhost:3306)/clf_db"
+var SQLITE_FILE = "./CLFDB/sqlite.db"
 
 type ParsedLog struct {
 	Log  Log

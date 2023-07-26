@@ -57,25 +57,23 @@ var App = map[string]string{
 	"php":         "php",
 }
 
-var DEnum = map[string]int{
-	"ATLAS/S1":    2225,
-	"ATLAS/S2":    3000,
-	"ATLAS/S3":    2225,
-	"ATLAS/S4":    2225,
-	"MiniHttpd":   2225,
-	"PostgreSql":  300,
-	"Proftpd":     800,
-	"Nginx":       800,
-	"Apache":      150,
-	"Redis":       100,
-	"Vim":         100,
-	"APT/S1":      100,
-	"APT/S1-1":    700,
-	"APT/S1-2":    80,
-	"APT/S2":      300,
-	"Openssh":     800,
-	"ImageMagick": 800,
-	"php":         700,
+var DEProcesses = map[string][]string{
+	"ATLAS/S1":    {"firefox.exe"},
+	"ATLAS/S2":    {"firefox.exe"},
+	"ATLAS/S3":    {"firefox.exe"},
+	"ATLAS/S4":    {"firefox.exe"},
+	"MiniHttpd":   {"/usr/local/sbin/mini_httpd"},
+	"PostgreSql":  {"/usr/local/pgsql/bin/postgres"},
+	"Proftpd":     {"/usr/local/sbin/proftpd"},
+	"Nginx":       {"/usr/sbin/nginx"},
+	"Apache":      {"/usr/local/apache2/bin/httpd"},
+	"Redis":       {"/usr/bin/redis-check-rdb"},
+	"Vim":         {"/usr/local/bin/vim"},
+	"APT/S1":      {"/usr/sbin/apache2", "/usr/local/sbin/proftpd"},
+	"APT/S2":      {"/usr/bin/python3.8"},
+	"Openssh":     {"/usr/local/sbin/sshd"},
+	"ImageMagick": {"/usr/local/bin/magick"},
+	"php":         {"/usr/sbin/apache2"},
 }
 
 func GetMaliciousNodes() map[string]string {
@@ -99,6 +97,46 @@ func GetMaliciousNodes() map[string]string {
 	maliciousNodes["APT/S1-2"] = "\"file#/opt/ftp/attackk.sh\""
 	maliciousNodes["APT/S2"] = "\"file#/etc/crontab\""
 	return maliciousNodes
+}
+
+func IsDENode(graph *gographviz.Graph, node string) bool {
+	for _, process := range DEProcesses[HHPG.Dataset] {
+
+		nodeSet := mapset.NewSet()
+
+		for _, edge := range graph.Edges.Edges {
+			tags := strings.Split(edge.Attrs["label"][1:len(edge.Attrs["label"])-1], "\\n")
+			tags = tags[:len(tags)-1]
+			for _, tag := range tags {
+				if strings.HasPrefix(tag, "src_exec") && strings.Split(tag, ":")[1] == process {
+					nodeSet.Add(edge.Src)
+				}
+				if strings.HasPrefix(tag, "dst_exec") && strings.Split(tag, ":")[1] == process {
+					nodeSet.Add(edge.Dst)
+				}
+				if strings.HasPrefix(tag, "Process Name") && strings.Split(tag, ":")[1] == process {
+					if strings.HasPrefix(edge.Src, "\"process#") {
+						nodeSet.Add(edge.Src)
+					}
+					if strings.HasPrefix(edge.Dst, "\"process#") {
+						nodeSet.Add(edge.Dst)
+					}
+				}
+			}
+		}
+
+		ansNode, depLen := string(""), 0
+		for _, curNode := range nodeSet.ToSlice() {
+			if GetDependencyLen(graph, curNode.(string)) > depLen {
+				ansNode = curNode.(string)
+				depLen = GetDependencyLen(graph, curNode.(string))
+			}
+		}
+		if ansNode == node {
+			return true
+		}
+	}
+	return false
 }
 
 func GetPath() (string, string) {
@@ -228,7 +266,7 @@ func GetCorrelatedEdges(edge *gographviz.Edge, logType string, edgesMap map[int]
 
 	idSet := mapset.NewSet()
 
-	db, err := sql.Open("mysql", CLF.MYSQL_CRED)
+	db, err := sql.Open("sqlite3", CLF.SQLITE_FILE)
 	defer db.Close()
 	if err != nil {
 		panic(err)
@@ -244,7 +282,7 @@ func GetCorrelatedEdges(edge *gographviz.Edge, logType string, edgesMap map[int]
 			var tagId int
 			r.Scan(&tagId)
 
-			sel := "SELECT `log_id` FROM `log`, `r_log_tag` WHERE `log`._id=`r_log_tag`.log_id and tag_id=? and log_type=?;"
+			sel := "SELECT `log_id` FROM `log`, `r_log_tag` WHERE `log`.rowid=`r_log_tag`.log_id and tag_id=? and log_type=?;"
 			row, err := db.Query(sel, tagId, logType)
 			if err != nil {
 				fmt.Printf("err: %v\n", err)
@@ -263,15 +301,15 @@ func GetCorrelatedEdges(edge *gographviz.Edge, logType string, edgesMap map[int]
 			if logType == App[HHPG.Dataset] {
 				sel = ` SELECT DISTINCT r_log_tag.log_id
 					FROM tag as tag1, dns, tag as tag2, r_log_tag, log
-					WHERE tag2._id = ? AND tag1._key = 'host' AND tag1._value = dns._domain 
-					  AND dns._ip = tag2._value AND tag1._id = r_log_tag.tag_id 
-					  AND r_log_tag.log_id = log._id AND log.log_type = ?;`
+					WHERE tag2.rowid = ? AND tag1._key = 'host' AND tag1._value = dns._domain 
+					  AND dns._ip = tag2._value AND tag1.rowid = r_log_tag.tag_id 
+					  AND r_log_tag.log_id = log.rowid AND log.log_type = ?;`
 			} else if logType == Audit[HHPG.Dataset] {
 				sel = ` SELECT DISTINCT r_log_tag.log_id
 					FROM tag as tag1, dns, tag as tag2, r_log_tag, log
-					WHERE tag1._id = ? AND tag1._key = 'host' AND tag1._value = dns._domain 
-					  AND dns._ip = tag2._value AND tag2._id = r_log_tag.tag_id 
-					  AND r_log_tag.log_id = log._id AND log.log_type = ?;`
+					WHERE tag1.rowid = ? AND tag1._key = 'host' AND tag1._value = dns._domain 
+					  AND dns._ip = tag2._value AND tag2.rowid = r_log_tag.tag_id 
+					  AND r_log_tag.log_id = log.rowid AND log.log_type = ?;`
 			}
 
 			row, err = db.Query(sel, tagId, logType)
@@ -297,7 +335,7 @@ func GetCorrelatedEdges(edge *gographviz.Edge, logType string, edgesMap map[int]
 }
 
 func GetDetailedCR(appList []*gographviz.Edge, auditLogIdSet mapset.Set) (int, int) {
-	db, err := sql.Open("mysql", CLF.MYSQL_CRED)
+	db, err := sql.Open("sqlite3", CLF.SQLITE_FILE)
 	defer db.Close()
 	if err != nil {
 		panic(err)
@@ -321,7 +359,7 @@ func GetDetailedCR(appList []*gographviz.Edge, auditLogIdSet mapset.Set) (int, i
 				var tagId int
 				r.Scan(&tagId)
 
-				sel := "SELECT `log_id` FROM `log`, `r_log_tag` WHERE `log`._id=`r_log_tag`.log_id and tag_id=? and log_type=?;"
+				sel := "SELECT `log_id` FROM `log`, `r_log_tag` WHERE `log`.rowid=`r_log_tag`.log_id and tag_id=? and log_type=?;"
 				row, err := db.Query(sel, tagId, logType)
 				if err != nil {
 					fmt.Printf("err: %v\n", err)
@@ -337,15 +375,15 @@ func GetDetailedCR(appList []*gographviz.Edge, auditLogIdSet mapset.Set) (int, i
 				if logType == App[HHPG.Dataset] {
 					sel = ` SELECT DISTINCT r_log_tag.log_id
 					FROM tag as tag1, dns, tag as tag2, r_log_tag, log
-					WHERE tag2._id = ? AND tag1._key = 'host' AND tag1._value = dns._domain 
-					  AND dns._ip = tag2._value AND tag1._id = r_log_tag.tag_id 
-					  AND r_log_tag.log_id = log._id AND log.log_type = ?;`
+					WHERE tag2.rowid = ? AND tag1._key = 'host' AND tag1._value = dns._domain 
+					  AND dns._ip = tag2._value AND tag1.rowid = r_log_tag.tag_id 
+					  AND r_log_tag.log_id = log.rowid AND log.log_type = ?;`
 				} else if logType == Audit[HHPG.Dataset] {
 					sel = ` SELECT DISTINCT r_log_tag.log_id
 					FROM tag as tag1, dns, tag as tag2, r_log_tag, log
-					WHERE tag1._id = ? AND tag1._key = 'host' AND tag1._value = dns._domain 
-					  AND dns._ip = tag2._value AND tag2._id = r_log_tag.tag_id 
-					  AND r_log_tag.log_id = log._id AND log.log_type = ?;`
+					WHERE tag1.rowid = ? AND tag1._key = 'host' AND tag1._value = dns._domain 
+					  AND dns._ip = tag2._value AND tag2.rowid = r_log_tag.tag_id 
+					  AND r_log_tag.log_id = log.rowid AND log.log_type = ?;`
 				}
 
 				row, err = db.Query(sel, tagId, logType)
@@ -427,7 +465,7 @@ func SearchForSpp(edge *gographviz.Edge, originEdge *gographviz.Edge, graph *gog
 				if auditEndEdge.Src == originEdge.Src || auditEndEdge.Src == originEdge.Dst {
 					continue
 				}
-				if GetDependencyLen(graph, auditEndEdge.Src) >= DEnum[HHPG.Dataset] {
+				if IsDENode(graph, auditEndEdge.Src) {
 					continue
 				}
 				if CompareTime(GetTime(auditEndEdge), GetTime(originEdge)) <= 0 && IsConnected(auditEndEdge, originEdge, graph) {
@@ -470,7 +508,7 @@ func ProcessDependencyExplosion(originEdge *gographviz.Edge, graph *gographviz.G
 		nodeNum++
 
 		if edgeQueue.Length() == 0 || nodeNum > nodeNumMax {
-			if nodeNum > nodeNumMax && len(sppsList) == 0 {
+			if nodeNum > nodeNumMax && nodeNumMax < 5000 && len(sppsList) == 0 {
 				nodeNumMax *= 2
 			} else {
 				break
@@ -557,7 +595,7 @@ func GetScore(edge1 *gographviz.Edge, edge2 *gographviz.Edge, db *sql.DB) float6
 
 func GetTopSPP(sppsList [][]*gographviz.Edge) []*gographviz.Edge {
 
-	db, err := sql.Open("mysql", CLF.MYSQL_CRED)
+	db, err := sql.Open("sqlite3", CLF.SQLITE_FILE)
 	defer db.Close()
 	if err != nil {
 		panic(err)
@@ -701,7 +739,14 @@ func PrintGraphInfo(graph *gographviz.Graph, info string) {
 }
 
 func GetDependencyLen(graph *gographviz.Graph, node string) int {
-	return len(graph.Edges.DstToSrcs[node]) + len(graph.Edges.SrcToDsts[node])
+	length := 0
+	for _, edgeList := range graph.Edges.DstToSrcs[node] {
+		length += len(edgeList)
+	}
+	for _, edgeList := range graph.Edges.SrcToDsts[node] {
+		length += len(edgeList)
+	}
+	return length
 }
 
 func GraphSearch(dotPath string, subDotPath string, maliciousLabels []string, withSpp bool) {
@@ -747,9 +792,7 @@ func GraphSearch(dotPath string, subDotPath string, maliciousLabels []string, wi
 					continue
 				}
 
-				dependencyLen := GetDependencyLen(graph, backwardNode)
-
-				if dependencyLen >= DEnum[HHPG.Dataset] && withSpp {
+				if IsDENode(graph, backwardNode) && withSpp {
 
 					nodeSet.Add(backwardNode)
 
@@ -840,15 +883,6 @@ func GetRecall(dotPath string, groundTruths []string) {
 	}
 }
 
-func GetDEnodes(graph *gographviz.Graph) {
-	DEnodesNum := 0
-	for name := range graph.Nodes.Lookup {
-		if GetDependencyLen(graph, name) >= DEnum[HHPG.Dataset] {
-			DEnodesNum++
-		}
-	}
-}
-
 func GetEntitySituation(graph *gographviz.Graph, groundTruths []string) {
 	nodeSum, nodeAttack, nodeNonAttack := 0, 0, 0
 	for nodeName := range graph.Nodes.Lookup {
@@ -919,8 +953,6 @@ func main() {
 			maliciousLabels = append(maliciousLabels, name)
 		}
 	}
-
-	GetDEnodes(graph)
 
 	var withSpps = [1]bool{true}
 

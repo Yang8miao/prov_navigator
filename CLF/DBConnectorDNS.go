@@ -12,7 +12,7 @@ type DNSInserter struct {
 
 func (pi *DNSInserter) Insert(goroutine int) {
 	log.Printf("Start dnsInserter routine %d\n", goroutine)
-	db, err := sql.Open("mysql", MYSQL_CRED)
+	db, err := sql.Open("sqlite3", SQLITE_FILE)
 	defer db.Close()
 	if err != nil {
 		panic(err)

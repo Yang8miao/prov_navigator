@@ -3,12 +3,69 @@ package CLF
 import (
 	"database/sql"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/mattn/go-sqlite3"
 	"log"
+	"os"
 )
 
-type AbsInserter interface {
-	Insert(goroutine int)
+func DBPrepare() {
+	if SQLITE_FILE != ":memory:" {
+		log.Printf("Clean Up Database...\n")
+		e := os.Remove(SQLITE_FILE)
+		if e != nil {
+			log.Printf("SQL file not exists...\n")
+		}
+		e = os.Remove(SQLITE_FILE + "-journal")
+		if e != nil {
+			log.Printf("SQL file journal not exists...\n")
+		}
+	}
+	db, err := sql.Open("sqlite3", SQLITE_FILE)
+	defer db.Close()
+	if err != nil {
+		panic(err)
+	}
+
+	sql_table := `
+create table if not exists log
+(
+_time    timestamp(3)           not null,
+log_raw  text                   null,
+log_type TEXT default '' not null
+);
+create table if not exists tag
+(
+_key   TEXT   not null,
+_value TEXT  not null,
+_type  int default 0 not null,
+constraint tag_kvt_index
+unique (_key, _value, _type)
+);
+create table r_log_tag
+(
+log_id int  not null,
+tag_id int  not null,
+constraint r_log_tag_id_index
+unique (log_id, tag_id),
+constraint r_log_tag_log_id_fk
+foreign key (log_id) references log (rowid)
+on delete cascade,
+constraint r_log_tag_tag_id_fk
+foreign key (tag_id) references tag (rowid)
+on delete cascade
+);
+create table if not exists dns
+(
+_domain   TEXT   not null,
+_ip TEXT  not null,
+constraint r_dns
+unique (_domain, _ip)
+);
+	`
+	_, err = db.Exec(sql_table)
+	if err != nil {
+		panic(err)
+	}
 }
 
 type Inserter struct {
@@ -17,7 +74,7 @@ type Inserter struct {
 
 func (pi *Inserter) Insert(goroutine int) {
 	log.Printf("Start inserter routine %d\n", goroutine)
-	db, err := sql.Open("mysql", MYSQL_CRED)
+	db, err := sql.Open("sqlite3", SQLITE_FILE)
 	defer db.Close()
 	if err != nil {
 		panic(err)
@@ -56,7 +113,7 @@ func (pi *Inserter) Insert(goroutine int) {
 			if err == nil {
 				tagId, _ = resp.LastInsertId()
 			} else {
-				qu := "SELECT `_id` FROM `tag` WHERE _key = ? AND _value= ?;"
+				qu := "SELECT `rowid` FROM `tag` WHERE _key = ? AND _value= ?;"
 				row := db.QueryRow(qu, tag.Key, tag.Value)
 				err = row.Scan(&tagId)
 				if err != nil {

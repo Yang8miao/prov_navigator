@@ -83,5 +83,5 @@ func (f *PostgresqlParser) ParsePushLine(rawLine string) error {
 }
 
 func (f *PostgresqlParser) LogType() string {
-	return "PostgreSQL"
+	return "PostgreSql"
 }
