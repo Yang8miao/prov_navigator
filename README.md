@@ -10,15 +10,6 @@
 
 Before you start, dataset is needed to be downloaded from [Google Drive](https://drive.google.com/file/d/1n5g-kIsuzBVMSwFg0L0O9kFIKsH9HRqs/view?usp=share_link). Then make a new directory `Logs` under this project, and extract the downloaded dataset to this directory.
 
-### Start database
-
-Before start the database, please make sure no file existed under the `./CLFDB/docker/db` directory, and ensure that Docker is installed, which is a prerequisite for CLF database.
-
-```sh
-cd ./CLFDB
-docker-compose up
-```
-
 ### Select dataset
 
 The dataset to be executed is configured as a global variable *Dataset* in `HHPG.go`, where *PostgreSql* is set as default. 
