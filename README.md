@@ -6,6 +6,10 @@
 
 ## Setup Environment
 
+### Prepare database
+
+The project uses SQLite as the database. Make a new directory CLFDB under this project, and the data files generated will be stored in this directory.
+
 ### Prepare dataset
 
 Before you start, dataset is needed to be downloaded from [Google Drive](https://drive.google.com/file/d/1n5g-kIsuzBVMSwFg0L0O9kFIKsH9HRqs/view?usp=share_link). Then make a new directory `Logs` under this project, and extract the downloaded dataset to this directory.
@@ -50,10 +54,10 @@ The workflow of Prov-Navigator includes:
 
 ### Generate provenance graphs
 
-- Execuate the command `go ./Graphbuilder` to generate separate provenance graphs and correlated log graphs from CLF results. 
+- Execute the command `go ./Graphbuilder` to generate separate provenance graphs and correlated log graphs from CLF results. 
 - Then, individual provenance graphs will be merged into one Hybrid Holistic Provenance Graph (HHPG).
 
 ### Start attack investigation
 
-- Execuate the command `go ./GraphSearch` to start the attack investigation. 
+- Execute the command `go ./GraphSearch` to start the attack investigation. 
 - The attack subgraph will be generated under the `./Graphs` folder.
